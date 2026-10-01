@@ -5,6 +5,7 @@ __pycache__/
 .ipynb_checkpoints/
 data/
 results/
+artifacts/
 *.pt
 *.pth
 *.ckpt
