@@ -72,17 +72,8 @@ For Aircraft or iNat819, select its dataset and data root; iNat819 also requires
 `--manifest configs/inaturalist_split_manifest.json`. Existing feature caches
 can be supplied with `--input-root PATH` or `--features FILE`.
 
-## Outputs
-
-Runs save metrics, checkpoints, trees and predictions under `artifacts/results/`.
-Validation recomputes all metrics and exports tables. Held-out levels are averaged
-within each seed before calculating the mean and sample standard deviation across
-five seeds. CSVs retain raw metric units; JSON/LaTeX tables use units of $10^{-3}$.
-
-[Results](results/table2/comparison_table.md) ·
-[Per-seed metrics](results/table2/per_seed_metrics.csv) ·
-[Figures](results/table2/figures/figure4_corrected.pdf) ·
-[Tested environments](protocol/tested_environments.json)
+Experiment outputs are generated locally under `artifacts/results/`.
+The validation and plotting scripts operate on those generated runs.
 
 The image pipeline uses [CLIP](https://github.com/openai/CLIP) and SCP from
 *Keep it Light! Simplifying Image Clustering via Text-Free Adapters*.

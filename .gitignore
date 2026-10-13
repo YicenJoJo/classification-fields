@@ -4,9 +4,7 @@ __pycache__/
 *.py[cod]
 .ipynb_checkpoints/
 data/
-results/*
-!results/table2/
-!results/table2/**
+results/
 artifacts/
 *.npz
 *.pkl
