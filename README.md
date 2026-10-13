@@ -4,17 +4,22 @@
 
 [Paper](https://openreview.net/forum?id=dLTzQWpUx2)
 
-A classification field predictor (CFP) learns a local refinement rule from an observed hierarchy and generates deeper levels by recursive rollout:
+A classification field predictor (CFP) learns a shared refinement rule from a
+finite observed hierarchy and generates finer levels by recursive rollout:
 
 $$
-x_{\alpha k} = x_\alpha + s^{|\alpha|+1}\hat r(x_\alpha)_k.
+x_{\alpha k}=x_\alpha+s^{|\alpha|+1}\hat r(x_\alpha)_k.
 $$
 
-Experiments cover matched CFG hierarchies, affine and nonlinear IFSs, and image-induced hierarchies built with frozen CLIP ViT-B/32 features and recursive SCP.
+Experiments cover matched CFG hierarchies, affine and nonlinear IFSs, and
+image-induced hierarchies built with frozen CLIP ViT-B/32 features and recursive
+Soft Contrastive Partition (SCP). Baselines are affine, learnable-constant and
+average-residual predictors. Evaluation uses ordered MSE, permutation-invariant
+Chamfer distance (PI-CD) and normalized tree-path distortion.
 
 ## Setup
 
-Use Python 3.11 with PyTorch and torchvision matching your CUDA installation.
+Use Python 3.12 and PyTorch/torchvision compatible with your CUDA environment.
 
 ```bash
 git clone https://github.com/YicenJoJo/classification-fields.git
@@ -22,9 +27,8 @@ cd classification-fields
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+python -m unittest discover -s tests -v
 ```
-
-On Windows, activate with `.venv\Scripts\Activate.ps1`.
 
 ## Synthetic experiments
 
@@ -34,63 +38,51 @@ python run_experiment.py affine --output results/affine
 python run_experiment.py nonlinear --output results/nonlinear
 ```
 
-`matched_cfg.py` preserves the matched CFG experiment previously bundled with CIFAR. `synthetic_benchmarks.py` and `synthetic_benchmarks_nonlinear_ifs.py` contain the IFS suites. IFS runs observe levels 0–2 and evaluate levels 3–5 over five trials; matched CFG runs use nine trials. The synthetic CFP uses three ReLU hidden layers of width 64, with 2,000 epochs for IFS and 3,000 for CFG.
-
-For ablations, replace the experiment name with `depth`, `scale`, `branching`, or `ordering`.
+CFG uses nine trials and nine unseen levels after observing levels 0–2.
+IFS uses five trials and evaluates levels 3–5. Ablations are available as
+`depth`, `scale`, `branching` and `ordering`.
 
 ## Image experiments
 
-`run_natural_experiment.py` provides `config`, `extract`, `run`, and `summarize` commands for all five datasets. Each run compares CFP with affine, learnable-constant, and average-residual predictors.
+All image hierarchies are ternary. Child ordering uses PCA fitted on observed
+centroids and angular projections of parent–child displacements, preserving
+complete subtrees. Metrics use featurewise min–max-scaled CLIP features.
 
-| Dataset argument | Support images | Seeds | Observed levels | Script evaluation | Table 2 evaluation |
-|---|---:|---|---|---|---|
-| `cifar10` | 50,000 | 42–46 | 0–5 | 6–7* | 6 |
-| `cifar100` | 50,000 | 42–46 | 0–5 | 6–7* | 6 |
-| `inaturalist` | 24,570 | 0–4 | 0–4 | 5–6 | 5–6 |
-| `aircraft` | 6,667 | 0–4 | 0–3 | 4–5 | 4–5 |
-| `food101` | 75,750 | 0–4 | 0–4 | 5–6 | 5 |
+| Dataset | Support images | Seeds | Observed levels | Held-out levels |
+|---|---:|---|---|---|
+| `cifar10` | 50,000 | 42–46 | 0–5 | 6 |
+| `cifar100` | 50,000 | 42–46 | 0–5 | 6 |
+| `inaturalist` | 24,570 | 0–4 | 0–4 | 5–6 |
+| `aircraft` | 6,667 | 0–4 | 0–3 | 4–5 |
+| `food101` | 75,750 | 0–4 | 0–4 | 5 |
 
-*CIFAR evaluates the available complete prefix; construction stops at small or empty splits. The script requests depth 7 for CIFAR and depth 6 for Food-101, one level beyond the paper's stated construction depths.
-
-### Data and execution
-
-Download datasets separately. CIFAR expects the extracted torchvision dataset folders; Food-101 expects `meta/` and `images/`; Aircraft expects the official `data/` directory, including bounding boxes. iNat819 uses `train_mini.json`, `val.json`, and their images, together with the supplied [split manifest](configs/inaturalist_split_manifest.json). Only support images enter hierarchy construction and predictor training; class labels are used for purity diagnostics.
+Download datasets separately. CIFAR and Food-101 use training images;
+Aircraft uses train+validation with bounding-box crops. iNat819 uses the
+supplied [split manifest](configs/inaturalist_split_manifest.json).
 
 ```bash
 python run_natural_experiment.py config --dataset all
-python run_experiment.py cifar --cifar-root /data/cifar --output results/cifar
-python run_natural_experiment.py run --dataset food101 --seed all \
-  --data-root /data/food-101 --output-root results/natural
-python run_natural_experiment.py run --dataset aircraft --seed all \
-  --data-root /data/fgvc-aircraft-2013b/data --output-root results/natural
-python run_natural_experiment.py run --dataset inaturalist --seed all \
-  --data-root /data/inaturalist --manifest configs/inaturalist_split_manifest.json \
-  --output-root results/natural
+python run_experiment.py cifar --cifar-root /data/cifar --output artifacts/results
+python run_natural_experiment.py run --dataset food101 --seed all --data-root /data/food-101 --output-root artifacts/results
+python scripts/validate_results.py
+python scripts/build_figures.py
 ```
 
-`run --data-root` extracts features before training. CLIP weights download on first use. Extraction writes caches to `<output-root>/inputs/<dataset>/tree_seed<seed>/features.npz`; use `--input-root <output-root>/inputs` to train from these caches, or `--features FILE` for one dataset and seed. `--trial 0` maps to seed 42 for CIFAR and seed 0 otherwise. CUDA is the default; `--allow-cpu` enables small diagnostic runs.
+For Aircraft or iNat819, select its dataset and data root; iNat819 also requires
+`--manifest configs/inaturalist_split_manifest.json`. Existing feature caches
+can be supplied with `--input-root PATH` or `--features FILE`.
 
-### Outputs and protocol notes
+## Outputs
 
-```bash
-python run_natural_experiment.py summarize --dataset cifar10 --seed all --output-root results/cifar
-python run_natural_experiment.py summarize --dataset food101 --seed all --output-root results/natural
-```
+Runs save metrics, checkpoints, trees and predictions under `artifacts/results/`.
+Validation recomputes all metrics and exports tables. Held-out levels are averaged
+within each seed before calculating the mean and sample standard deviation across
+five seeds. CSVs retain raw metric units; JSON/LaTeX tables use units of $10^{-3}$.
 
-Runs save metrics, checkpoints, centroids, predictions, and resolved settings under `runs/<dataset>/seed<seed>/`. Summaries are written under `release/` and replaced on each `summarize` call. Use `--dataset all` when all five datasets share an output root.
+[Results](results/table2/comparison_table.md) ·
+[Per-seed metrics](results/table2/per_seed_metrics.csv) ·
+[Figures](results/table2/figures/figure4_corrected.pdf) ·
+[Tested environments](protocol/tested_environments.json)
 
-`per_seed_metrics.csv` and `summary_metrics.csv` contain per-depth results. `comparison_table.csv` averages **all script held-out depths** within each seed before computing mean and sample standard deviation across seeds. For Table 2, select the depths above, average them within each seed, and multiply values by 1,000. Metrics are coordinate-averaged MSE, symmetric squared Chamfer distance (PI-CD), and diameter-normalized tree-path distortion.
-
-The supplied numerical implementation is retained. Its PCA ordering differs from Appendix F.3.4: CIFAR fits all constructed centroid levels; the other datasets fit observed parent–child displacements. Both center displacements before projection. CIFAR also reorders levels without propagating the permutation to descendant blocks, which can change parent–child relationships and path distances. These differences require reconciliation before claiming exact paper reproduction.
-
-## Citation
-
-```bibtex
-@misc{classificationfields2026,
-  title = {Classification Fields: Arbitrarily Fine Recursive Hierarchical Clustering From Few Examples},
-  year  = {2026},
-  url   = {https://openreview.net/forum?id=dLTzQWpUx2}
-}
-```
-
-The image pipeline uses [CLIP](https://github.com/openai/CLIP) and SCP from *Keep it Light! Simplifying Image Clustering via Text-Free Adapters*.
+The image pipeline uses [CLIP](https://github.com/openai/CLIP) and SCP from
+*Keep it Light! Simplifying Image Clustering via Text-Free Adapters*.

@@ -30,7 +30,7 @@ from torch.utils.data import DataLoader, Dataset, TensorDataset
 
 BUNDLE_ROOT = Path(__file__).resolve().parent
 DEFAULT_INPUT_ROOT = BUNDLE_ROOT / "artifacts" / "inputs"
-DEFAULT_OUTPUT_ROOT = BUNDLE_ROOT / "artifacts" / "standalone"
+DEFAULT_OUTPUT_ROOT = BUNDLE_ROOT / "artifacts" / "results"
 PROTOCOL_JSON = r'''{
   "schema_version": 1,
   "template": "../anonymous_cifar100_clip.py",
@@ -267,6 +267,25 @@ CIFAR_PRESETS = json.loads(r'''{
 }
 ''')
 PROTOCOL["datasets"].update(CIFAR_PRESETS)
+
+# Appendix F.3.4 and Table 2, supplied camera-ready draft.
+PROTOCOL["schema_version"] = 2
+PROTOCOL["revision"] = "paper_centroid_pca_genealogy_v1"
+PROTOCOL["canonicalization"] = {
+    "method": "observed_centroid_pca_direct_displacement_angle",
+    "components": 2, "svd_solver": "full",
+    "component_sign": "largest_absolute_loading_positive",
+    "projection": "displacement @ components.T; no subtraction of PCA mean",
+    "tie_breaker": "Euclidean displacement norm, then stable input slot",
+}
+for _dataset in ("cifar10", "cifar100"):
+    PROTOCOL["datasets"][_dataset].update(max_depth=6, heldout_depths=[6],
+        canonicalization=PROTOCOL["canonicalization"]["method"],
+        incomplete_tree="fail unless all paper evaluation depths are complete")
+PROTOCOL["datasets"]["food101"].update(max_depth=5, heldout_depths=[5])
+PROTOCOL_JSON = json.dumps(PROTOCOL, sort_keys=True, separators=(",", ":"))
+PROTOCOL_SHA256 = hashlib.sha256(PROTOCOL_JSON.encode()).hexdigest()
+
 
 
 def dataset_seeds(dataset: str) -> list[int]:
@@ -813,55 +832,91 @@ def audit_topology(root: Tree, *, branching: int, max_depth: int) -> dict[str, A
     }
 
 
-def fit_observed_basis(
-    root: Tree, *, observed_depth: int, components: int = 2
-) -> dict[str, Any]:
-    displacements = []
-    parent_addresses = []
-    for parent in iter_nodes(root):
-        if int(parent["depth"]) >= observed_depth:
-            continue
-        origin = np.asarray(parent["centroid"], dtype=np.float64)
-        for child in parent["children"]:
-            displacements.append(
-                np.asarray(child["centroid"], dtype=np.float64) - origin
-            )
-            parent_addresses.append(list(parent["address"]))
-    matrix = np.stack(displacements)
-    pca = PCA(n_components=components, svd_solver="full").fit(matrix)
-    basis = np.asarray(pca.components_, dtype=np.float64)
-    sign_fixes = []
-    for component in range(len(basis)):
-        pivot = int(np.argmax(np.abs(basis[component])))
-        sign = 1 if basis[component, pivot] >= 0 else -1
-        basis[component] *= sign
-        sign_fixes.append({"component": component, "pivot": pivot, "sign": sign})
-    return {
-        "basis": basis,
-        "mean": np.asarray(pca.mean_, dtype=np.float64),
-        "explained_variance_ratio": pca.explained_variance_ratio_.tolist(),
-        "fit_parent_count": len(set(map(tuple, parent_addresses))),
-        "fit_parent_depths": sorted({len(value) for value in parent_addresses}),
-        "sign_fixes": sign_fixes,
-    }
+def fit_centroid_pca(levels, observed_depth):
+    """Fit on H_0..H_Ltrain; the PCA mean is never subtracted from a displacement."""
+    if not 1 <= observed_depth < len(levels):
+        raise ValueError("PCA requires a nonempty observed prefix")
+    matrix = np.vstack(levels[:observed_depth + 1]).astype(np.float64)
+    if matrix.shape[1] < 2:
+        raise ValueError("Angular canonicalization requires at least two dimensions")
+    model = PCA(n_components=2, svd_solver="full").fit(matrix)
+    for component in model.components_:
+        pivot = int(np.argmax(np.abs(component)))
+        if component[pivot] < 0:
+            component *= -1
+    return model
+
+
+def genealogy_snapshot(root):
+    """Intrinsic identities use support membership, independent of ordered addresses."""
+    nodes, edges = [], []
+    def visit(node):
+        membership = np.sort(np.asarray(node["indices"], dtype=np.int64))
+        identity = hashlib.sha256(membership.tobytes()).hexdigest()
+        coordinates = hashlib.sha256(np.asarray(node["centroid"]).tobytes()).hexdigest()
+        nodes.append((identity, coordinates, int(node["depth"])))
+        for child in node.get("children") or []:
+            edges.append((identity, visit(child)))
+        return identity
+    visit(root)
+    return {"nodes": sorted(nodes), "edges": sorted(edges)}
+
+
+def validate_genealogy(before, after):
+    if before != after:
+        raise RuntimeError("Canonicalization changed coordinates, membership, or parent-child edges")
+    return {"status": "passed", "node_count": len(before["nodes"]),
+            "edge_count": len(before["edges"]), "changed_edges": 0,
+            "snapshot_sha256": sha256_json(before)}
+
+
+def verify_completion(output, identity=None):
+    output = Path(output)
+    marker = read_json(output / "complete.json")
+    if marker.get("status") != "complete":
+        raise ValueError(f"Invalid completion status at {output}")
+    if identity is not None and marker.get("run_identity") != identity:
+        raise ValueError(f"Run identity mismatch at {output}")
+    for name, key in (("metrics.json", "metrics_sha256"),
+                      ("levels_and_predictions.npz", "levels_sha256"),
+                      ("scp_tree.pkl", "tree_sha256")):
+        if marker.get(key) != sha256_file(output / name):
+            raise ValueError(f"Artifact checksum mismatch: {output / name}")
+    return marker
+
+
+def fit_observed_basis(root: Tree, *, observed_depth: int, components: int = 2) -> dict[str, Any]:
+    if components != 2:
+        raise ValueError("The paper specifies two principal directions")
+    grouped = nodes_by_depth(root)
+    levels = [np.stack([node["centroid"] for node in grouped[d]])
+              for d in range(observed_depth + 1)]
+    pca = fit_centroid_pca(levels, observed_depth)
+    return {"method": PROTOCOL["canonicalization"]["method"],
+            "basis": pca.components_, "mean": pca.mean_,
+            "explained_variance_ratio": pca.explained_variance_ratio_.tolist(),
+            "fit_depths": list(range(observed_depth + 1)),
+            "fit_centroid_count": sum(map(len, levels)),
+            "component_sign": PROTOCOL["canonicalization"]["component_sign"],
+            "displacement_centered": False}
 
 
 def canonicalize(root: Tree, *, basis: np.ndarray, mean: np.ndarray) -> None:
     basis = np.asarray(basis, dtype=np.float64)
-    mean = np.asarray(mean, dtype=np.float64)
+    root.setdefault("address", [])
 
     def visit(parent: Tree) -> None:
-        children = parent.get("children", [])
+        children = parent.get("children") or []
         if not children:
             return
         origin = np.asarray(parent["centroid"], dtype=np.float64)
         keys = []
         for child in children:
             displacement = np.asarray(child["centroid"], dtype=np.float64) - origin
-            projection = (displacement - mean) @ basis.T
+            projection = displacement @ basis.T
             angle = float(np.arctan2(projection[1], projection[0]))
             distance = float(np.linalg.norm(displacement))
-            keys.append((angle, distance, str(child["node_id"])))
+            keys.append((angle, distance))
         parent["children"] = [
             children[index] for index in sorted(range(len(children)), key=keys.__getitem__)
         ]
@@ -1421,6 +1476,7 @@ def run_experiment(
             complete.get("run_identity") == identity
             and complete.get("metrics_sha256") == sha256_file(metrics_path)
         ):
+            verify_completion(output, identity)
             print(json.dumps({"status": "already_complete", "path": str(output)}))
             return output
         raise RuntimeError(f"Invalid completion marker at {output}; use --force")
@@ -1483,7 +1539,10 @@ def run_experiment(
         observed_depth=int(config["observed_depth"]),
         components=int(protocol["canonicalization"]["components"]),
     )
+    before_ordering = genealogy_snapshot(tree)
     canonicalize(tree, basis=basis["basis"], mean=basis["mean"])
+    genealogy_audit = validate_genealogy(before_ordering, genealogy_snapshot(tree))
+    write_json_atomic(output / "genealogy_audit.json", genealogy_audit)
     topology_after = audit_topology(
         tree,
         branching=int(config["branching"]),
@@ -1621,6 +1680,7 @@ def run_experiment(
         "observed_depth": int(config["observed_depth"]),
         "heldout_depths": list(map(int, config["heldout_depths"])),
         "topology_audit": topology_after,
+        "genealogy_audit": genealogy_audit,
         "canonicalization": _json_basis(basis),
         "scale_estimation": scale_audit,
         "training": training_audit,
@@ -1694,9 +1754,31 @@ def aggregate(
             if not path.is_file():
                 missing.append(str(path))
                 continue
+            complete = verify_completion(path.parent)
+            expected_config = dataset_config(dataset)
+            expected_protocol = sha256_json(expected_config) if dataset in CIFAR_PRESETS else PROTOCOL_SHA256
+            if complete["run_identity"].get("script_sha256") != sha256_file(__file__):
+                raise ValueError(f"Different implementation revision in {path}")
             payload = json.loads(path.read_text())
+            if payload["protocol_sha256"] != expected_protocol:
+                raise ValueError(f"Different protocol in {path}")
+            if payload["heldout_depths"] != expected_config["heldout_depths"]:
+                raise ValueError(f"Incorrect Table 2 horizon in {path}")
+            if payload.get("genealogy_audit", {}).get("status") != "passed":
+                raise ValueError(f"Missing genealogy audit in {path}")
             if payload["dataset"] != dataset or payload["seed"] != seed:
                 raise ValueError(f"Dataset/seed mismatch in {path}")
+            if set(payload["by_depth"]) != set(map(str, expected_config["heldout_depths"])):
+                raise ValueError(f"Unexpected evaluated depth keys in {path}")
+            for method in protocol["methods"]:
+                for metric in METRICS:
+                    values = [payload["by_depth"][str(d)][method][metric]
+                              for d in expected_config["heldout_depths"]]
+                    if not np.isfinite(values).all():
+                        raise ValueError(f"Non-finite metric in {path}")
+                    if not np.isclose(payload["heldout_average"][method][metric],
+                                      np.mean(values), rtol=1e-12, atol=1e-12):
+                        raise ValueError(f"Incorrect horizon average in {path}")
             payloads.append(payload)
     if missing and require_complete:
         raise FileNotFoundError(f"Missing {len(missing)} formal metrics files: {missing}")
@@ -2386,36 +2468,39 @@ def _cifar_tree_max_full_depth(tree, K=None):
     return 1 + min(child_depths)
 
 
-def _cifar_canonicalize_levels_pca(levels, K=3, pca_model=None):
-    """Apply the legacy CIFAR levelwise PCA ordering. See README protocol notes."""
+def _cifar_canonicalize_levels_pca(levels, K=3, pca_model=None, *,
+                                    observed_depth=None, return_permutations=False):
+    """Sort sibling slots and move complete descendant blocks with each sibling."""
     if pca_model is None:
-        all_centroids = np.vstack(levels)
-        pca_model = PCA(n_components=min(2, all_centroids.shape[1]))
-        pca_model.fit(all_centroids)
-
-    levels_canon = [lev.copy() for lev in levels]
-
-    for l in range(1, len(levels_canon)):
-        n_parents = levels_canon[l - 1].shape[0]
+        if observed_depth is None:
+            raise ValueError("Specify observed_depth to prevent fitting held-out levels")
+        pca_model = fit_centroid_pca(levels, observed_depth)
+    levels_canon = [np.asarray(lev).copy() for lev in levels]
+    permutations = [np.arange(len(lev)) for lev in levels]
+    for depth, level in enumerate(levels_canon):
+        if len(level) != K ** depth:
+            raise ValueError(f"Incomplete K-ary level {depth}")
+    for depth in range(1, len(levels_canon)):
+        n_parents = len(levels_canon[depth - 1])
         new_order = np.empty(n_parents * K, dtype=int)
-
-        for p in range(n_parents):
-            parent = levels_canon[l - 1][p]
-            start = p * K
-            children = levels_canon[l][start: start + K]
-
-            disp = children - parent
-            disp_2d = pca_model.transform(disp)[:, :2]
-
-            angles = np.arctan2(disp_2d[:, 1], disp_2d[:, 0])
-            dists = np.linalg.norm(disp, axis=1)
-            sort_idx = np.lexsort((dists, angles))
-
-            new_order[start: start + K] = start + sort_idx
-
-        levels_canon[l] = levels_canon[l][new_order]
-
-    return levels_canon
+        for parent_index, parent in enumerate(levels_canon[depth - 1]):
+            start = parent_index * K
+            displacement = levels_canon[depth][start:start + K].astype(np.float64) - parent.astype(np.float64)
+            projection = displacement @ pca_model.components_[:2].T
+            angles = np.arctan2(projection[:, 1], projection[:, 0])
+            distances = np.linalg.norm(displacement, axis=1)
+            new_order[start:start + K] = start + np.lexsort((distances, angles))
+        for descendant_depth in range(depth, len(levels_canon)):
+            block = K ** (descendant_depth - depth)
+            order = (new_order[:, None] * block + np.arange(block)[None, :]).ravel()
+            levels_canon[descendant_depth] = levels_canon[descendant_depth][order]
+            permutations[descendant_depth] = permutations[descendant_depth][order]
+    for depth in range(1, len(levels_canon)):
+        actual_parents = permutations[depth] // K
+        expected_parents = np.repeat(permutations[depth - 1], K)
+        if not np.array_equal(actual_parents, expected_parents):
+            raise RuntimeError("Descendant-block permutation changed a parent-child edge")
+    return (levels_canon, permutations) if return_permutations else levels_canon
 
 
 def _cifar_chamfer_distance(pred, true, squared=True):
@@ -2900,6 +2985,7 @@ def run_cifar_experiment(
     if complete_path.is_file() and metrics_path.is_file() and not force:
         complete = json.loads(complete_path.read_text())
         if complete.get("run_identity") == identity and complete.get("metrics_sha256") == sha256_file(metrics_path):
+            verify_completion(output, identity)
             print(json.dumps({"status": "already_complete", "path": str(output)}))
             return output
         raise RuntimeError(f"Invalid completion marker at {output}; use --force")
@@ -2919,16 +3005,27 @@ def run_cifar_experiment(
         scp_batch_size=config["scp_batch_size"], sort_children=True, device=device,
     )
     full_depth = min(_cifar_tree_max_full_depth(tree), config["max_depth"])
-    if full_depth <= config["observed_depth"]:
+    if full_depth != config["max_depth"]:
         write_json_atomic(output / "topology_failure.json", {
             "actual_full_depth": full_depth, "observed_depth": config["observed_depth"],
-            "reason": "No full held-out depth remains under the original CIFAR stopping rule",
+            "reason": "Incomplete paper horizon; no automatic depth clamping permitted",
         })
-        raise ValueError(f"Observed depth {config['observed_depth']} >= full tree depth {full_depth}")
+        raise ValueError(f"Paper requires depth {config['max_depth']}, but full depth is {full_depth}")
     levels = _cifar_tree_to_levels(tree, target_depth=full_depth)
-    basis = PCA(n_components=min(2, levels[0].shape[1])).fit(np.vstack(levels))
-    levels = _cifar_canonicalize_levels_pca(levels, K=config["branching"], pca_model=basis)
-    heldout = [d for d in config["heldout_depths"] if d <= full_depth]
+    basis = fit_centroid_pca(levels, config["observed_depth"])
+    array_order, permutations = _cifar_canonicalize_levels_pca(
+        levels, K=config["branching"], pca_model=basis, return_permutations=True)
+    before_ordering = genealogy_snapshot(tree)
+    canonicalize(tree, basis=basis.components_, mean=basis.mean_)
+    genealogy_audit = validate_genealogy(before_ordering, genealogy_snapshot(tree))
+    levels = _cifar_tree_to_levels(tree, target_depth=full_depth)
+    for left, right in zip(array_order, levels):
+        if not np.array_equal(left, right):
+            raise RuntimeError("Saved tree and canonical centroid arrays disagree")
+    write_json_atomic(output / "genealogy_audit.json", genealogy_audit)
+    _atomic_npz(output / "canonical_permutations.npz",
+                {f"level_{d}": p for d, p in enumerate(permutations)})
+    heldout = list(config["heldout_depths"])
     scale, branching = config["scale"], config["branching"]
     predictions, training = {}, {}
     factories = (
@@ -2989,7 +3086,9 @@ def run_cifar_experiment(
         "branching": branching, "max_depth": full_depth, "requested_max_depth": config["max_depth"],
         "observed_depth": config["observed_depth"], "heldout_depths": heldout,
         "canonicalization": {"method": config["canonicalization"], "basis": basis.components_.tolist(),
-                             "mean": basis.mean_.tolist(), "fit_depths": list(range(full_depth + 1))},
+                             "mean": basis.mean_.tolist(), "fit_depths": list(range(config["observed_depth"] + 1)),
+                             "displacement_centered": False},
+        "genealogy_audit": genealogy_audit,
         "scale_estimation": {"method": "fixed", "scale": scale},
         "training": training, "purity": purity, "by_depth": by_depth, "heldout_average": averages,
     }

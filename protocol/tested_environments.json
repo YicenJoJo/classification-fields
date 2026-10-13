@@ -1,0 +1,302 @@
+[
+  {
+    "dataset": "aircraft",
+    "seed": 0,
+    "environment": {
+      "python": "3.12.4 (main, Jun  7 2024, 23:47:47) [GCC 13.3.0]",
+      "torch": "2.9.0",
+      "numpy": "2.3.3+computecanada",
+      "sklearn": "1.7.1+computecanada",
+      "cuda": "12.6",
+      "gpu": "NVIDIA L40S"
+    }
+  },
+  {
+    "dataset": "aircraft",
+    "seed": 1,
+    "environment": {
+      "python": "3.12.4 (main, Jun  7 2024, 23:47:47) [GCC 13.3.0]",
+      "torch": "2.9.0",
+      "numpy": "2.3.3+computecanada",
+      "sklearn": "1.7.1+computecanada",
+      "cuda": "12.6",
+      "gpu": "NVIDIA L40S"
+    }
+  },
+  {
+    "dataset": "aircraft",
+    "seed": 2,
+    "environment": {
+      "python": "3.12.4 (main, Jun  7 2024, 23:47:47) [GCC 13.3.0]",
+      "torch": "2.9.0",
+      "numpy": "2.3.3+computecanada",
+      "sklearn": "1.7.1+computecanada",
+      "cuda": "12.6",
+      "gpu": "NVIDIA L40S"
+    }
+  },
+  {
+    "dataset": "aircraft",
+    "seed": 3,
+    "environment": {
+      "python": "3.12.4 (main, Jun  7 2024, 23:47:47) [GCC 13.3.0]",
+      "torch": "2.9.0",
+      "numpy": "2.3.3+computecanada",
+      "sklearn": "1.7.1+computecanada",
+      "cuda": "12.6",
+      "gpu": "NVIDIA L40S"
+    }
+  },
+  {
+    "dataset": "aircraft",
+    "seed": 4,
+    "environment": {
+      "python": "3.12.4 (main, Jun  7 2024, 23:47:47) [GCC 13.3.0]",
+      "torch": "2.9.0",
+      "numpy": "2.3.3+computecanada",
+      "sklearn": "1.7.1+computecanada",
+      "cuda": "12.6",
+      "gpu": "NVIDIA L40S"
+    }
+  },
+  {
+    "dataset": "cifar100",
+    "seed": 42,
+    "environment": {
+      "python": "3.12.4 (main, Jun  7 2024, 23:47:47) [GCC 13.3.0]",
+      "torch": "2.9.0",
+      "numpy": "2.3.3+computecanada",
+      "sklearn": "1.7.1+computecanada",
+      "cuda": "12.6",
+      "gpu": "NVIDIA L40S"
+    }
+  },
+  {
+    "dataset": "cifar100",
+    "seed": 43,
+    "environment": {
+      "python": "3.12.4 (main, Jun  7 2024, 23:47:47) [GCC 13.3.0]",
+      "torch": "2.9.0",
+      "numpy": "2.3.3+computecanada",
+      "sklearn": "1.7.1+computecanada",
+      "cuda": "12.6",
+      "gpu": "NVIDIA L40S"
+    }
+  },
+  {
+    "dataset": "cifar100",
+    "seed": 44,
+    "environment": {
+      "python": "3.12.4 (main, Jun  7 2024, 23:47:47) [GCC 13.3.0]",
+      "torch": "2.9.0",
+      "numpy": "2.3.3+computecanada",
+      "sklearn": "1.7.1+computecanada",
+      "cuda": "12.6",
+      "gpu": "NVIDIA L40S"
+    }
+  },
+  {
+    "dataset": "cifar100",
+    "seed": 45,
+    "environment": {
+      "python": "3.12.4 (main, Jun  7 2024, 23:47:47) [GCC 13.3.0]",
+      "torch": "2.9.0",
+      "numpy": "2.3.3+computecanada",
+      "sklearn": "1.7.1+computecanada",
+      "cuda": "12.6",
+      "gpu": "NVIDIA L40S"
+    }
+  },
+  {
+    "dataset": "cifar100",
+    "seed": 46,
+    "environment": {
+      "python": "3.12.4 (main, Jun  7 2024, 23:47:47) [GCC 13.3.0]",
+      "torch": "2.9.0",
+      "numpy": "2.3.3+computecanada",
+      "sklearn": "1.7.1+computecanada",
+      "cuda": "12.6",
+      "gpu": "NVIDIA L40S"
+    }
+  },
+  {
+    "dataset": "cifar10",
+    "seed": 42,
+    "environment": {
+      "python": "3.12.4 (main, Jun  7 2024, 23:47:47) [GCC 13.3.0]",
+      "torch": "2.9.0",
+      "numpy": "2.3.3+computecanada",
+      "sklearn": "1.7.1+computecanada",
+      "cuda": "12.6",
+      "gpu": "NVIDIA L40S"
+    }
+  },
+  {
+    "dataset": "cifar10",
+    "seed": 43,
+    "environment": {
+      "python": "3.12.4 (main, Jun  7 2024, 23:47:47) [GCC 13.3.0]",
+      "torch": "2.9.0",
+      "numpy": "2.3.3+computecanada",
+      "sklearn": "1.7.1+computecanada",
+      "cuda": "12.6",
+      "gpu": "NVIDIA L40S"
+    }
+  },
+  {
+    "dataset": "cifar10",
+    "seed": 44,
+    "environment": {
+      "python": "3.12.4 (main, Jun  7 2024, 23:47:47) [GCC 13.3.0]",
+      "torch": "2.9.0",
+      "numpy": "2.3.3+computecanada",
+      "sklearn": "1.7.1+computecanada",
+      "cuda": "12.6",
+      "gpu": "NVIDIA L40S"
+    }
+  },
+  {
+    "dataset": "cifar10",
+    "seed": 45,
+    "environment": {
+      "python": "3.12.4 (main, Jun  7 2024, 23:47:47) [GCC 13.3.0]",
+      "torch": "2.9.0",
+      "numpy": "2.3.3+computecanada",
+      "sklearn": "1.7.1+computecanada",
+      "cuda": "12.6",
+      "gpu": "NVIDIA L40S"
+    }
+  },
+  {
+    "dataset": "cifar10",
+    "seed": 46,
+    "environment": {
+      "python": "3.12.4 (main, Jun  7 2024, 23:47:47) [GCC 13.3.0]",
+      "torch": "2.9.0",
+      "numpy": "2.3.3+computecanada",
+      "sklearn": "1.7.1+computecanada",
+      "cuda": "12.6",
+      "gpu": "NVIDIA L40S"
+    }
+  },
+  {
+    "dataset": "food101",
+    "seed": 0,
+    "environment": {
+      "python": "3.12.4 (main, Jun  7 2024, 23:47:47) [GCC 13.3.0]",
+      "torch": "2.9.0",
+      "numpy": "2.3.3+computecanada",
+      "sklearn": "1.7.1+computecanada",
+      "cuda": "12.6",
+      "gpu": "NVIDIA L40S"
+    }
+  },
+  {
+    "dataset": "food101",
+    "seed": 1,
+    "environment": {
+      "python": "3.12.4 (main, Jun  7 2024, 23:47:47) [GCC 13.3.0]",
+      "torch": "2.9.0",
+      "numpy": "2.3.3+computecanada",
+      "sklearn": "1.7.1+computecanada",
+      "cuda": "12.6",
+      "gpu": "NVIDIA L40S"
+    }
+  },
+  {
+    "dataset": "food101",
+    "seed": 2,
+    "environment": {
+      "python": "3.12.4 (main, Jun  7 2024, 23:47:47) [GCC 13.3.0]",
+      "torch": "2.9.0",
+      "numpy": "2.3.3+computecanada",
+      "sklearn": "1.7.1+computecanada",
+      "cuda": "12.6",
+      "gpu": "NVIDIA L40S"
+    }
+  },
+  {
+    "dataset": "food101",
+    "seed": 3,
+    "environment": {
+      "python": "3.12.4 (main, Jun  7 2024, 23:47:47) [GCC 13.3.0]",
+      "torch": "2.9.0",
+      "numpy": "2.3.3+computecanada",
+      "sklearn": "1.7.1+computecanada",
+      "cuda": "12.6",
+      "gpu": "NVIDIA L40S"
+    }
+  },
+  {
+    "dataset": "food101",
+    "seed": 4,
+    "environment": {
+      "python": "3.12.4 (main, Jun  7 2024, 23:47:47) [GCC 13.3.0]",
+      "torch": "2.9.0",
+      "numpy": "2.3.3+computecanada",
+      "sklearn": "1.7.1+computecanada",
+      "cuda": "12.6",
+      "gpu": "NVIDIA L40S"
+    }
+  },
+  {
+    "dataset": "inaturalist",
+    "seed": 0,
+    "environment": {
+      "python": "3.12.4 (main, Jun  7 2024, 23:47:47) [GCC 13.3.0]",
+      "torch": "2.9.0",
+      "numpy": "2.3.3+computecanada",
+      "sklearn": "1.7.1+computecanada",
+      "cuda": "12.6",
+      "gpu": "NVIDIA L40S"
+    }
+  },
+  {
+    "dataset": "inaturalist",
+    "seed": 1,
+    "environment": {
+      "python": "3.12.4 (main, Jun  7 2024, 23:47:47) [GCC 13.3.0]",
+      "torch": "2.9.0",
+      "numpy": "2.3.3+computecanada",
+      "sklearn": "1.7.1+computecanada",
+      "cuda": "12.6",
+      "gpu": "NVIDIA L40S"
+    }
+  },
+  {
+    "dataset": "inaturalist",
+    "seed": 2,
+    "environment": {
+      "python": "3.12.4 (main, Jun  7 2024, 23:47:47) [GCC 13.3.0]",
+      "torch": "2.9.0",
+      "numpy": "2.3.3+computecanada",
+      "sklearn": "1.7.1+computecanada",
+      "cuda": "12.6",
+      "gpu": "NVIDIA L40S"
+    }
+  },
+  {
+    "dataset": "inaturalist",
+    "seed": 3,
+    "environment": {
+      "python": "3.12.4 (main, Jun  7 2024, 23:47:47) [GCC 13.3.0]",
+      "torch": "2.9.0",
+      "numpy": "2.3.3+computecanada",
+      "sklearn": "1.7.1+computecanada",
+      "cuda": "12.6",
+      "gpu": "NVIDIA L40S"
+    }
+  },
+  {
+    "dataset": "inaturalist",
+    "seed": 4,
+    "environment": {
+      "python": "3.12.4 (main, Jun  7 2024, 23:47:47) [GCC 13.3.0]",
+      "torch": "2.9.0",
+      "numpy": "2.3.3+computecanada",
+      "sklearn": "1.7.1+computecanada",
+      "cuda": "12.6",
+      "gpu": "NVIDIA L40S"
+    }
+  }
+]

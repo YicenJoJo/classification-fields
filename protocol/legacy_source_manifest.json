@@ -1,0 +1,40 @@
+{
+  "commit": "50da89b1fd1e6340b9bf91e0e450f620e4135f65",
+  "files": {
+    "README.md": {
+      "sha256": "923b4273300e80013c8f14e80648700caddd35f30b39ce7bedc746d2cb0513e6",
+      "git_blob_sha1": "286af75d8128d944a7b3b5ad4d06635a499cbd86",
+      "bytes": 5744
+    },
+    "matched_cfg.py": {
+      "sha256": "c2f22505eef31381a45a5149f730c43a6ba57f12e8961ac43dbf4f3de1d8d5b2",
+      "git_blob_sha1": "ebd6001da310acdf361b7162a977c09d3daae34e",
+      "bytes": 49672
+    },
+    "requirements.txt": {
+      "sha256": "a032e52be25290cc9597a341522c6bdc097d288b3f7e58cb2d1e6fbc544c07db",
+      "git_blob_sha1": "e11d243f2ec1d6805b477e384713241e5003cd7f",
+      "bytes": 116
+    },
+    "run_experiment.py": {
+      "sha256": "5280d0c7faa1340ef9441f3ff5ed5ddc340145ed864e19c1d22a10a75c4527af",
+      "git_blob_sha1": "f243f6cb09a091d96309b00adbae4b1bb3b2dac3",
+      "bytes": 2675
+    },
+    "run_natural_experiment.py": {
+      "sha256": "7e4a76f0357d2ba8bb7ec0c4c3473b4e0578ac8aec003df179d3eb0273268856",
+      "git_blob_sha1": "478d5217ae225cb72e3f778810227f516e46e274",
+      "bytes": 121021
+    },
+    "synthetic_benchmarks.py": {
+      "sha256": "6fb7cfc385d47acac3c473e3f0c824299313fb08d7580e27ff632f4dcb01453c",
+      "git_blob_sha1": "4d6324f57d568b2e5112f90baae4a2405b80eab2",
+      "bytes": 133432
+    },
+    "synthetic_benchmarks_nonlinear_ifs.py": {
+      "sha256": "81bbd239390c67c817693ef6134e57cef4ec640d8627ae428880df0195d6bb6b",
+      "git_blob_sha1": "140943de9df76d037179416382918432ad404f8c",
+      "bytes": 140169
+    }
+  }
+}
